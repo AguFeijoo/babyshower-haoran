@@ -87,6 +87,7 @@ export default function GiftList({ initialGifts }: { initialGifts: Gift[] }) {
                         💡 Ver sugerencia ↗
                       </a>
                     )}
+                    <div className="gift-foot">
                     {open ? (
                       <div className="counts open-counts">
                         <span className="pill-open">{g.mode === "money" ? "💝 Monto libre" : "∞ Sin límite"}</span>
@@ -112,6 +113,7 @@ export default function GiftList({ initialGifts }: { initialGifts: Gift[] }) {
                         {g.mode === "money" ? "Quiero sumarme 💝" : "Lo regalo 🌺"}
                       </button>
                     )}
+                    </div>
                   </article>
                 );
               })}
