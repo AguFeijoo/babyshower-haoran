@@ -3,11 +3,30 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
-import type { Gift, Pledge } from "@/lib/types";
+import { formatMoney, type Gift, type GiftMode, type Pledge } from "@/lib/types";
 import { groupByCategory } from "@/lib/group";
 
-type Draft = { category: string; name: string; description: string; link: string; quantity: string };
-const emptyDraft: Draft = { category: "", name: "", description: "", link: "", quantity: "1" };
+type Draft = { mode: GiftMode; category: string; name: string; description: string; link: string; quantity: string };
+const emptyDraft: Draft = { mode: "fixed", category: "", name: "", description: "", link: "", quantity: "1" };
+
+// Selector de cantidad: número fijo, sin límite o dinero (monto libre).
+function QuantityField({ draft, onChange, id }: { draft: Draft; onChange: (d: Draft) => void; id?: string }) {
+  return (
+    <div className="field">
+      <label htmlFor={id}>Cantidad</label>
+      <div className="qty-field">
+        <select className="input" value={draft.mode} onChange={(e) => onChange({ ...draft, mode: e.target.value as GiftMode })} aria-label="Tipo de cantidad">
+          <option value="fixed">Cantidad fija</option>
+          <option value="unlimited">∞ Sin límite</option>
+          <option value="money">💝 Dinero (monto libre)</option>
+        </select>
+        {draft.mode === "fixed" && (
+          <input id={id} type="number" min={0} max={9999} className="input" value={draft.quantity} onChange={(e) => onChange({ ...draft, quantity: e.target.value })} required />
+        )}
+      </div>
+    </div>
+  );
+}
 
 async function call(url: string, method: string, body?: unknown) {
   const res = await fetch(url, {
@@ -38,8 +57,11 @@ export default function Dashboard({ gifts, pledges, memoryMode }: { gifts: Gift[
   }
   const categories = [...new Set(gifts.map((g) => g.category).filter(Boolean))];
   const groups = groupByCategory(gifts);
-  const totalNeeded = gifts.reduce((a, g) => a + g.quantity, 0);
-  const totalPledged = gifts.reduce((a, g) => a + Math.min(g.pledged, g.quantity), 0);
+  const fixedGifts = gifts.filter((g) => g.mode === "fixed");
+  const totalNeeded = fixedGifts.reduce((a, g) => a + g.quantity, 0);
+  const totalPledged = fixedGifts.reduce((a, g) => a + Math.min(g.pledged, g.quantity), 0);
+  const moneyTotal = gifts.filter((g) => g.mode === "money").reduce((a, g) => a + g.pledged, 0);
+  const hasMoney = gifts.some((g) => g.mode === "money");
 
   async function run(fn: () => Promise<unknown>) {
     setError("");
@@ -69,11 +91,11 @@ export default function Dashboard({ gifts, pledges, memoryMode }: { gifts: Gift[
 
   function startEdit(g: Gift) {
     setEditing(g.id);
-    setDraft({ category: g.category, name: g.name, description: g.description, link: g.link, quantity: String(g.quantity) });
+    setDraft({ mode: g.mode, category: g.category, name: g.name, description: g.description, link: g.link, quantity: String(g.quantity) });
   }
 
   async function removeGift(g: Gift) {
-    const extra = g.pledged > 0 ? ` También se borran las ${g.pledged} unidades que ya prometieron.` : "";
+    const extra = g.pledgeCount > 0 ? ` También se borran las ${g.pledgeCount} respuestas que ya tiene.` : "";
     if (!confirm(`¿Eliminar "${g.name}"?${extra}`)) return;
     await run(() => call(`/api/admin/gifts/${g.id}`, "DELETE"));
   }
@@ -113,7 +135,11 @@ export default function Dashboard({ gifts, pledges, memoryMode }: { gifts: Gift[
         <div className="stats">
           <div className="stat"><b>{gifts.length}</b><span>regalos en la lista</span></div>
           <div className="stat"><b>{totalPledged}/{totalNeeded}</b><span>unidades prometidas</span></div>
-          <div className="stat"><b>{gifts.filter((g) => g.remaining === 0).length}</b><span>regalos completos</span></div>
+          {hasMoney ? (
+            <div className="stat"><b>{formatMoney(moneyTotal)}</b><span>en aportes de dinero</span></div>
+          ) : (
+            <div className="stat"><b>{fixedGifts.filter((g) => g.remaining === 0).length}</b><span>regalos completos</span></div>
+          )}
           <div className="stat"><b>{people.size}</b><span>personas participando</span></div>
         </div>
 
@@ -141,10 +167,7 @@ export default function Dashboard({ gifts, pledges, memoryMode }: { gifts: Gift[
               <label htmlFor="ng-link">Link (opcional)</label>
               <input id="ng-link" className="input" value={newGift.link} onChange={(e) => setNewGift({ ...newGift, link: e.target.value })} placeholder="https://…" maxLength={500} />
             </div>
-            <div className="field">
-              <label htmlFor="ng-qty">Cantidad</label>
-              <input id="ng-qty" type="number" min={0} max={9999} className="input" value={newGift.quantity} onChange={(e) => setNewGift({ ...newGift, quantity: e.target.value })} required />
-            </div>
+            <QuantityField id="ng-qty" draft={newGift} onChange={setNewGift} />
             <button className="btn btn-pink" disabled={busy} style={{ gridColumn: "1 / -1", justifySelf: "start" }}>+ Agregar a la lista</button>
           </form>
         </section>
@@ -178,10 +201,7 @@ export default function Dashboard({ gifts, pledges, memoryMode }: { gifts: Gift[
                       <label>Link</label>
                       <input className="input" value={draft.link} onChange={(e) => setDraft({ ...draft, link: e.target.value })} maxLength={500} />
                     </div>
-                    <div className="field">
-                      <label>Cantidad</label>
-                      <input type="number" min={0} max={9999} className="input" value={draft.quantity} onChange={(e) => setDraft({ ...draft, quantity: e.target.value })} required />
-                    </div>
+                    <QuantityField draft={draft} onChange={setDraft} />
                     <div className="actions" style={{ gridColumn: "1 / -1" }}>
                       <button className="btn btn-primary btn-sm" disabled={busy}>Guardar</button>
                       <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(null)}>Cancelar</button>
@@ -192,13 +212,23 @@ export default function Dashboard({ gifts, pledges, memoryMode }: { gifts: Gift[
                     <div>
                       <h3>
                         {g.name}{" "}
-                        <span className={`pill ${g.remaining === 0 ? "pill-ok" : "pill-wait"}`}>
-                          {g.remaining === 0 ? "Completo" : `Faltan ${g.remaining}`}
-                        </span>
+                        {g.mode === "money" ? (
+                          <span className="pill pill-money">💝 Dinero</span>
+                        ) : g.mode === "unlimited" ? (
+                          <span className="pill pill-wait">∞ Sin límite</span>
+                        ) : (
+                          <span className={`pill ${g.remaining === 0 ? "pill-ok" : "pill-wait"}`}>
+                            {g.remaining === 0 ? "Completo" : `Faltan ${g.remaining}`}
+                          </span>
+                        )}
                       </h3>
                       <div className="meta">
-                        {g.pledged} de {g.quantity} prometidos
-                        {g.pledged > g.quantity && " (prometieron más de lo que pedían ahora)"}
+                        {g.mode === "money"
+                          ? `${formatMoney(g.pledged)} en ${g.pledgeCount} ${g.pledgeCount === 1 ? "aporte" : "aportes"}`
+                          : g.mode === "unlimited"
+                            ? `${g.pledged} prometidos`
+                            : `${g.pledged} de ${g.quantity} prometidos`}
+                        {g.mode === "fixed" && g.pledged > g.quantity && " (prometieron más de lo que pedían ahora)"}
                         {g.description && ` · ${g.description}`}
                         {g.link && <> · <a href={g.link} target="_blank" rel="noopener noreferrer">link</a></>}
                       </div>
@@ -223,7 +253,7 @@ export default function Dashboard({ gifts, pledges, memoryMode }: { gifts: Gift[
                           <div className="co">{fmtDate(p.createdAt)}</div>
                         </div>
                         <div style={{ textAlign: "right" }}>
-                          <div className="qty">× {p.quantity}</div>
+                          <div className="qty">{g.mode === "money" ? formatMoney(p.quantity) : `× ${p.quantity}`}</div>
                           <button className="link-btn" style={{ color: "var(--hibiscus)", fontSize: 13 }} onClick={() => removePledge(p)} disabled={busy}>Eliminar</button>
                         </div>
                       </div>

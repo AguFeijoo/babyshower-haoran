@@ -183,6 +183,16 @@ h1, h2, h3 { font-family: var(--font-display); line-height: 1.05; margin: 0; }
 
 .empty { text-align: center; padding: 40px 16px; color: var(--muted); }
 
+.open-counts { align-items: center; }
+.pill-open { background: var(--angel-soft); color: var(--angel-deep); font-weight: 800; padding: 4px 10px; border-radius: 999px; font-size: 13px; }
+.gift.money { background: linear-gradient(160deg, #fff 55%, var(--angel-soft)); }
+.gift.money::before { background: linear-gradient(90deg, var(--angel), var(--sun)); }
+.gift.money .desc { white-space: pre-line; }
+.qty-field { display: flex; gap: 8px; }
+.qty-field select.input { flex: 1; min-width: 0; padding-right: 6px; }
+.qty-field input.input { width: 80px; flex: none; }
+.pill-money { background: #fff3d6; color: #8a5a00; }
+
 /* ---------- Modal ---------- */
 .overlay {
   position: fixed; inset: 0; background: rgba(20, 42, 87, 0.55); z-index: 50;
@@ -231,6 +241,10 @@ textarea.input { resize: vertical; min-height: 70px; }
 .link-btn { background: none; border: 0; color: var(--stitch); font-weight: 800; cursor: pointer; padding: 4px 0; }
 .error { background: #fdecee; color: #b42b37; padding: 10px 14px; border-radius: 12px; font-weight: 700; margin-bottom: 14px; }
 .thanks { text-align: center; padding: 10px 0; }
+.money-desc { background: var(--mist); border-radius: 14px; padding: 12px 14px; margin: -6px 0 16px; color: var(--stitch-deep); white-space: pre-line; line-height: 1.45; }
+.money-input { display: flex; align-items: center; gap: 8px; }
+.money-input span { font-family: var(--font-display); font-weight: 800; font-size: 28px; color: var(--stitch); }
+.money-input .input { font-size: 22px; font-weight: 800; color: var(--stitch-deep); }
 .thanks h3 { padding: 0; margin-top: 8px; }
 
 @keyframes fade { from { opacity: 0; } }
@@ -258,7 +272,7 @@ textarea.input { resize: vertical; min-height: 70px; }
 .stat span { color: var(--muted); font-size: 14px; font-weight: 700; }
 .panel { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; margin-bottom: 18px; }
 .panel h2 { font-size: 26px; color: var(--stitch-deep); margin-bottom: 12px; }
-.gift-form { display: grid; grid-template-columns: 1.4fr 1.6fr 2fr 1.4fr 100px; gap: 10px; align-items: end; }
+.gift-form { display: grid; grid-template-columns: 1.2fr 1.4fr 1.8fr 1.2fr 1.7fr; gap: 10px; align-items: end; }
 .gift-form .field { margin: 0; }
 .admin-gift { border: 2px solid var(--line); border-radius: 18px; padding: 16px; margin-bottom: 12px; }
 .admin-gift-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; flex-wrap: wrap; }

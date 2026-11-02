@@ -1,5 +1,5 @@
 import { neon } from "@neondatabase/serverless";
-import type { Gift, GiftInput, Pledge, PledgeInput } from "./types";
+import { GIFT_MODES, type Gift, type GiftInput, type GiftMode, type Pledge, type PledgeInput } from "./types";
 import { SEED_GIFTS } from "./seedGifts";
 
 
@@ -14,9 +14,12 @@ type Store = {
   deletePledge(id: number): Promise<boolean>;
 };
 
-function withTotals(base: { id: number; category: string; name: string; description: string; link: string; quantity: number }, pledged: number): Gift {
-  return { ...base, pledged, remaining: Math.max(0, base.quantity - pledged) };
+type GiftBase = { id: number; mode: GiftMode; category: string; name: string; description: string; link: string; quantity: number };
+function withTotals(base: GiftBase, pledged: number, pledgeCount: number): Gift {
+  const remaining = base.mode === "fixed" ? Math.max(0, base.quantity - pledged) : 0;
+  return { ...base, pledged, pledgeCount, remaining };
 }
+const asMode = (v: unknown): GiftMode => (GIFT_MODES.includes(v as GiftMode) ? (v as GiftMode) : "fixed");
 
 /* ------------------------------ Neon (producción) ------------------------------ */
 
@@ -45,6 +48,7 @@ function neonStore(url: string): Store {
     )`;
     await sql`CREATE INDEX IF NOT EXISTS pledges_gift_id_idx ON pledges(gift_id)`;
     await sql`ALTER TABLE gifts ADD COLUMN IF NOT EXISTS category TEXT NOT NULL DEFAULT ''`;
+    await sql`ALTER TABLE gifts ADD COLUMN IF NOT EXISTS mode TEXT NOT NULL DEFAULT 'fixed'`;
     await sql`CREATE TABLE IF NOT EXISTS app_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)`;
     const seeded = await sql`INSERT INTO app_meta (key, value) VALUES ('seeded', '1')
       ON CONFLICT (key) DO NOTHING RETURNING key`;
@@ -64,35 +68,36 @@ function neonStore(url: string): Store {
 
   function mapGift(r: Record<string, unknown>): Gift {
     return withTotals(
-      { id: Number(r.id), category: String(r.category ?? ""), name: String(r.name), description: String(r.description), link: String(r.link), quantity: Number(r.quantity) },
+      { id: Number(r.id), mode: asMode(r.mode), category: String(r.category ?? ""), name: String(r.name), description: String(r.description), link: String(r.link), quantity: Number(r.quantity) },
       Number(r.pledged),
+      Number(r.pledge_count ?? 0),
     );
   }
 
   return {
     async listGifts() {
       const s = await db();
-      const rows = await s`SELECT g.*, COALESCE(SUM(p.quantity), 0)::int AS pledged
+      const rows = await s`SELECT g.*, COALESCE(SUM(p.quantity), 0)::int AS pledged, COUNT(p.id)::int AS pledge_count
         FROM gifts g LEFT JOIN pledges p ON p.gift_id = g.id
         GROUP BY g.id ORDER BY g.sort_order, g.id`;
       return rows.map(mapGift);
     },
     async getGift(id) {
       const s = await db();
-      const rows = await s`SELECT g.*, COALESCE(SUM(p.quantity), 0)::int AS pledged
+      const rows = await s`SELECT g.*, COALESCE(SUM(p.quantity), 0)::int AS pledged, COUNT(p.id)::int AS pledge_count
         FROM gifts g LEFT JOIN pledges p ON p.gift_id = g.id
         WHERE g.id = ${id} GROUP BY g.id`;
       return rows[0] ? mapGift(rows[0]) : null;
     },
     async createGift(g) {
       const s = await db();
-      await s`INSERT INTO gifts (category, name, description, link, quantity, sort_order)
-        VALUES (${g.category}, ${g.name}, ${g.description}, ${g.link}, ${g.quantity},
+      await s`INSERT INTO gifts (mode, category, name, description, link, quantity, sort_order)
+        VALUES (${g.mode ?? "fixed"}, ${g.category}, ${g.name}, ${g.description}, ${g.link}, ${g.quantity},
           (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM gifts))`;
     },
     async updateGift(id, g) {
       const s = await db();
-      const rows = await s`UPDATE gifts SET category = ${g.category}, name = ${g.name}, description = ${g.description},
+      const rows = await s`UPDATE gifts SET mode = ${g.mode ?? "fixed"}, category = ${g.category}, name = ${g.name}, description = ${g.description},
         link = ${g.link}, quantity = ${g.quantity} WHERE id = ${id} RETURNING id`;
       return rows.length > 0;
     },
@@ -108,7 +113,8 @@ function neonStore(url: string): Store {
         SELECT g.id, ${p.giverName}::text, ${p.quantity}::int, ${p.coGivers}::text[], ${p.message}::text
         FROM gifts g
         WHERE g.id = ${p.giftId}::int
-          AND g.quantity - COALESCE((SELECT SUM(x.quantity) FROM pledges x WHERE x.gift_id = g.id), 0) >= ${p.quantity}::int
+          AND (g.mode <> 'fixed'
+            OR g.quantity - COALESCE((SELECT SUM(x.quantity) FROM pledges x WHERE x.gift_id = g.id), 0) >= ${p.quantity}::int)
         RETURNING id`;
       return rows.length > 0;
     },
@@ -150,7 +156,8 @@ function memoryStore(): Store {
   }
   const m = g.__bsMem;
   const pledgedFor = (id: number) => m.pledges.filter((p) => p.giftId === id).reduce((a, p) => a + p.quantity, 0);
-  const toGift = (x: MemGift) => withTotals(x, pledgedFor(x.id));
+  const countFor = (id: number) => m.pledges.filter((p) => p.giftId === id).length;
+  const toGift = (x: MemGift) => withTotals({ ...x, mode: x.mode ?? "fixed" }, pledgedFor(x.id), countFor(x.id));
 
   return {
     async listGifts() { return m.gifts.map(toGift); },
@@ -170,7 +177,7 @@ function memoryStore(): Store {
     },
     async createPledge(p) {
       const x = m.gifts.find((y) => y.id === p.giftId);
-      if (!x || x.quantity - pledgedFor(x.id) < p.quantity) return false;
+      if (!x || ((x.mode ?? "fixed") === "fixed" && x.quantity - pledgedFor(x.id) < p.quantity)) return false;
       m.pledges.push({ ...p, id: m.nextPledge++, createdAt: new Date().toISOString() });
       return true;
     },

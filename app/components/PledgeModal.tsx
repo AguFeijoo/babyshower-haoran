@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Gift } from "@/lib/types";
+import { formatMoney, type Gift } from "@/lib/types";
 import { BABY_NAME } from "@/lib/config";
 import { Hibiscus } from "./Decorations";
 
@@ -25,7 +25,10 @@ export default function PledgeModal({
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
 
-  const max = Math.max(1, gift.remaining);
+  const [amount, setAmount] = useState("");
+  const isMoney = gift.mode === "money";
+  const max = gift.mode === "fixed" ? Math.max(1, gift.remaining) : 999;
+  const amountNum = Math.round(Number(amount.replace(/[^\d]/g, "")));
 
   useEffect(() => {
     try {
@@ -50,6 +53,7 @@ export default function PledgeModal({
     setError("");
     const others = group ? coGivers.map((c) => c.trim()).filter(Boolean) : [];
     if (!name.trim()) return setError("Contanos tu nombre.");
+    if (isMoney && !(amountNum > 0)) return setError("Escribí el monto que te gustaría regalar.");
     if (group && others.length === 0) return setError("Agregá al menos una persona con la que regalás.");
 
     setSending(true);
@@ -57,7 +61,7 @@ export default function PledgeModal({
       const res = await fetch("/api/pledges", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ giftId: gift.id, giverName: name, quantity: qty, coGivers: others, message }),
+        body: JSON.stringify({ giftId: gift.id, giverName: name, quantity: isMoney ? amountNum : qty, coGivers: others, message }),
       });
       const data = await res.json();
       if (data.gift) onGiftUpdate(data.gift);
@@ -84,7 +88,7 @@ export default function PledgeModal({
             <Hibiscus size={84} style={{ position: "static" }} />
             <h3 id="pledge-title">¡Mahalo, {name.trim().split(" ")[0]}!</h3>
             <p className="sub">
-              Anotamos {qty} × {gift.name}
+              {isMoney ? <>Anotamos tu aporte de {formatMoney(amountNum)}</> : <>Anotamos {qty} × {gift.name}</>}
               {group && coGivers.some((c) => c.trim()) ? " para el regalo en grupo" : ""}.
               {" "}{BABY_NAME} ya te lo agradece 💙
             </p>
@@ -93,7 +97,14 @@ export default function PledgeModal({
         ) : (
           <form onSubmit={submit}>
             <h3 id="pledge-title">{gift.name}</h3>
-            <p className="sub">Faltan {gift.remaining} de {gift.quantity}. ¿Cuántos regalás?</p>
+            <p className="sub">
+              {isMoney
+                ? "Elegí el monto que quieras, cualquier aporte suma. Solo lo ven los papás 💙"
+                : gift.mode === "unlimited"
+                  ? "¿Cuántos regalás?"
+                  : `Faltan ${gift.remaining} de ${gift.quantity}. ¿Cuántos regalás?`}
+            </p>
+            {isMoney && gift.description && <p className="money-desc">{gift.description}</p>}
 
             {error && <div className="error">{error}</div>}
 
@@ -102,19 +113,39 @@ export default function PledgeModal({
               <input id="giver" className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej: Tía Laura" maxLength={80} autoComplete="name" />
             </div>
 
-            <div className="field">
-              <span className="label">Cantidad</span>
-              <div className="stepper">
-                <button type="button" onClick={() => setQty((q) => Math.max(1, q - 1))} disabled={qty <= 1} aria-label="Menos">−</button>
-                <output aria-live="polite">{qty}</output>
-                <button type="button" onClick={() => setQty((q) => Math.min(max, q + 1))} disabled={qty >= max} aria-label="Más">+</button>
-                <small>máx. {max}</small>
+            {isMoney ? (
+              <div className="field">
+                <label htmlFor="amount">Monto (en pesos)</label>
+                <div className="money-input">
+                  <span>$</span>
+                  <input
+                    id="amount"
+                    className="input"
+                    inputMode="numeric"
+                    placeholder="Ej: 2.000"
+                    value={amount}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/[^\d]/g, "").slice(0, 8);
+                      setAmount(digits ? Number(digits).toLocaleString("es-UY") : "");
+                    }}
+                  />
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="field">
+                <span className="label">Cantidad</span>
+                <div className="stepper">
+                  <button type="button" onClick={() => setQty((q) => Math.max(1, q - 1))} disabled={qty <= 1} aria-label="Menos">−</button>
+                  <output aria-live="polite">{qty}</output>
+                  <button type="button" onClick={() => setQty((q) => Math.min(max, q + 1))} disabled={qty >= max} aria-label="Más">+</button>
+                  {gift.mode === "fixed" && <small>máx. {max}</small>}
+                </div>
+              </div>
+            )}
 
             <label className="toggle">
               <input type="checkbox" checked={group} onChange={(e) => setGroup(e.target.checked)} />
-              Lo regalo junto con otras personas
+              {isMoney ? "Lo regalamos entre varios" : "Lo regalo junto con otras personas"}
             </label>
 
             {group && (
@@ -148,7 +179,11 @@ export default function PledgeModal({
             </div>
 
             <button className="btn btn-primary" style={{ width: "100%" }} disabled={sending}>
-              {sending ? "Guardando…" : `Confirmar ${qty} ${qty === 1 ? "regalo" : "regalos"}`}
+              {sending
+                ? "Guardando…"
+                : isMoney
+                  ? `Confirmar aporte${amountNum > 0 ? ` de ${formatMoney(amountNum)}` : ""}`
+                  : `Confirmar ${qty} ${qty === 1 ? "regalo" : "regalos"}`}
             </button>
           </form>
         )}

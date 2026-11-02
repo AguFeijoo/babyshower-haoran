@@ -68,7 +68,7 @@ export default async function Home() {
         <Wave fill="#23407f" className="wave-top" />
         <p style={{ margin: 0 }}>Hecho con mucho amor para {BABY_NAME} 🌺</p>
         <p style={{ margin: "8px 0 0", fontSize: 14 }}>
-          ¿Sos mamá o papá? <Link href="/admin">Entrar</Link>
+          <Link href="/admin">Solo para puchis</Link>
         </p>
       </footer>
     </main>

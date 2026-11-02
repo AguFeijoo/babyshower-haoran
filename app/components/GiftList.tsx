@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Gift } from "@/lib/types";
+import { isOpen, type Gift } from "@/lib/types";
 import { GiftIcon } from "./Decorations";
 import PledgeModal from "./PledgeModal";
 import { groupByCategory } from "@/lib/group";
@@ -22,8 +22,8 @@ export default function GiftList({ initialGifts }: { initialGifts: Gift[] }) {
   const [selected, setSelected] = useState<Gift | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
 
-  const shown = filter === "pending" ? gifts.filter((g) => g.remaining > 0) : gifts;
-  const pendingCount = gifts.filter((g) => g.remaining > 0).length;
+  const shown = filter === "pending" ? gifts.filter(isOpen) : gifts;
+  const pendingCount = gifts.filter((g) => g.mode === "fixed" && g.remaining > 0).length;
   const groups = groupByCategory(shown);
 
   function updateGift(updated: Gift) {
@@ -53,7 +53,7 @@ export default function GiftList({ initialGifts }: { initialGifts: Gift[] }) {
           {groups.map((g, i) => (
             <a key={g.name} href={`#cat-${i}`} className="cat-chip">
               {g.name}
-              <span>{g.items.filter((x) => x.remaining > 0).length}</span>
+              <span>{g.items.filter(isOpen).length}</span>
             </a>
           ))}
         </nav>
@@ -69,11 +69,12 @@ export default function GiftList({ initialGifts }: { initialGifts: Gift[] }) {
             {groups.length > 1 && <h3 className="cat-title">{group.name}</h3>}
             <div className="grid">
               {group.items.map((g) => {
-                const done = g.remaining === 0;
+                const done = !isOpen(g);
+                const open = g.mode !== "fixed";
                 const pct = g.quantity > 0 ? Math.min(100, (g.pledged / g.quantity) * 100) : 100;
                 const [c1, c2] = ICON_COLORS[g.id % ICON_COLORS.length];
                 return (
-                  <article key={g.id} className={`gift ${done ? "done" : ""}`}>
+                  <article key={g.id} className={`gift ${done ? "done" : ""} ${g.mode === "money" ? "money" : ""}`}>
                     <div className="gift-head">
                       <span className="gift-icon"><GiftIcon color={c1} ribbon={c2} /></span>
                       <div>
@@ -86,16 +87,29 @@ export default function GiftList({ initialGifts }: { initialGifts: Gift[] }) {
                         Ver referencia ↗
                       </a>
                     )}
-                    <div className="progress" aria-hidden><i style={{ width: `${pct}%` }} /></div>
-                    <div className="counts">
-                      <span>{done ? "Completo" : <>Faltan <b>{g.remaining}</b></>}</span>
-                      <span>{g.pledged} de {g.quantity}</span>
-                    </div>
+                    {open ? (
+                      <div className="counts open-counts">
+                        <span className="pill-open">{g.mode === "money" ? "💝 Monto libre" : "∞ Sin límite"}</span>
+                        <span>
+                          {g.pledgeCount === 0
+                            ? "¡Sé el primero!"
+                            : `${g.pledgeCount} ${g.pledgeCount === 1 ? "persona ya se sumó" : "personas ya se sumaron"}`}
+                        </span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="progress" aria-hidden><i style={{ width: `${pct}%` }} /></div>
+                        <div className="counts">
+                          <span>{done ? "Completo" : <>Faltan <b>{g.remaining}</b></>}</span>
+                          <span>{g.pledged} de {g.quantity}</span>
+                        </div>
+                      </>
+                    )}
                     {done ? (
                       <span className="badge-done">¡Completo! Gracias 💚</span>
                     ) : (
                       <button className="btn btn-primary" onClick={() => setSelected(g)}>
-                        Lo regalo 🌺
+                        {g.mode === "money" ? "Quiero sumarme 💝" : "Lo regalo 🌺"}
                       </button>
                     )}
                   </article>
