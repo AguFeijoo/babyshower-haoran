@@ -84,7 +84,7 @@ export default function GiftList({ initialGifts }: { initialGifts: Gift[] }) {
                     </div>
                     {g.link && (
                       <a className="ref" href={g.link} target="_blank" rel="noopener noreferrer">
-                        Ver referencia ↗
+                        💡 Ver sugerencia ↗
                       </a>
                     )}
                     {open ? (

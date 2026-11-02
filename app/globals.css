@@ -148,8 +148,11 @@ h1, h2, h3 { font-family: var(--font-display); line-height: 1.05; margin: 0; }
 }
 .gift h3 { font-size: 22px; color: var(--ink); }
 .gift .desc { color: var(--muted); font-size: 15px; margin: 4px 0 0; line-height: 1.4; }
-.gift .ref { font-size: 14px; font-weight: 700; text-decoration: none; }
-.gift .ref:hover { text-decoration: underline; }
+.gift .ref {
+  align-self: flex-start; font-size: 14px; font-weight: 800; text-decoration: none;
+  background: #fff6dc; color: #8a5a00; border: 2px solid #ffe3a3; border-radius: 999px; padding: 5px 12px;
+}
+.gift .ref:hover { border-color: var(--sun); }
 
 .progress { height: 12px; border-radius: 999px; background: var(--mist); overflow: hidden; }
 .progress > i {
@@ -228,9 +231,11 @@ textarea.input { resize: vertical; min-height: 70px; }
 .stepper small { color: var(--muted); }
 .toggle {
   display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px;
-  background: var(--angel-soft); cursor: pointer; margin-bottom: 14px; font-weight: 700;
+  background: #fff; border: 2px solid var(--line); cursor: pointer; margin-bottom: 14px; font-weight: 700;
 }
-.toggle input { width: 20px; height: 20px; accent-color: var(--angel-deep); }
+.toggle:has(input:checked) { border-color: var(--sky); background: var(--mist); }
+.toggle input { width: 20px; height: 20px; accent-color: var(--stitch); flex: none; }
+.toggle em { font-style: normal; font-weight: 400; color: var(--muted); }
 .co-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
 .co-row { display: flex; gap: 8px; }
 .co-row .input { flex: 1; }
@@ -241,6 +246,14 @@ textarea.input { resize: vertical; min-height: 70px; }
 .link-btn { background: none; border: 0; color: var(--stitch); font-weight: 800; cursor: pointer; padding: 4px 0; }
 .error { background: #fdecee; color: #b42b37; padding: 10px 14px; border-radius: 12px; font-weight: 700; margin-bottom: 14px; }
 .thanks { text-align: center; padding: 10px 0; }
+.hint { text-align: center; padding: 6px 0 4px; }
+.hint h3 { padding: 0 24px; }
+.hint-icon { display: inline-grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; background: #fff6dc; font-size: 32px; margin-bottom: 10px; }
+.hint-title { font-family: var(--font-display); font-weight: 800; font-size: 20px; color: var(--angel-deep); margin: 8px 0 0; }
+.hint .sub { margin: 6px auto 20px; max-width: 360px; }
+.hint-actions { display: flex; flex-direction: column; gap: 10px; }
+.hint-actions .btn { width: 100%; text-decoration: none; }
+.hint-inline { display: inline-block; margin: -6px 0 16px; font-weight: 800; font-size: 14px; color: #8a5a00; background: #fff6dc; border-radius: 999px; padding: 5px 12px; text-decoration: none; }
 .money-desc { background: var(--mist); border-radius: 14px; padding: 12px 14px; margin: -6px 0 16px; color: var(--stitch-deep); white-space: pre-line; line-height: 1.45; }
 .money-input { display: flex; align-items: center; gap: 8px; }
 .money-input span { font-family: var(--font-display); font-weight: 800; font-size: 28px; color: var(--stitch); }

@@ -24,6 +24,9 @@ export default function PledgeModal({
   const [error, setError] = useState("");
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
+  // Si el regalo tiene link, primero mostramos la sugerencia antes del formulario.
+  const [showHint, setShowHint] = useState(Boolean(gift.link));
+  const [viewedLink, setViewedLink] = useState(false);
 
   const [amount, setAmount] = useState("");
   const isMoney = gift.mode === "money";
@@ -94,6 +97,29 @@ export default function PledgeModal({
             </p>
             <button className="btn btn-pink" onClick={onClose}>Volver a la lista</button>
           </div>
+        ) : showHint ? (
+          <div className="hint">
+            <span className="hint-icon" aria-hidden>💡</span>
+            <h3 id="pledge-title">{gift.name}</h3>
+            <p className="hint-title">¡Tenemos una sugerencia!</p>
+            <p className="sub">
+              Para este regalo elegimos uno que nos encantó. Miralo antes de comprar: podés regalar ese mismo o uno parecido.
+            </p>
+            <div className="hint-actions">
+              <a
+                className={`btn ${viewedLink ? "btn-ghost" : "btn-pink"}`}
+                href={gift.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setViewedLink(true)}
+              >
+                Ver la sugerencia ↗
+              </a>
+              <button type="button" className={`btn ${viewedLink ? "btn-primary" : "btn-ghost"}`} onClick={() => setShowHint(false)}>
+                {viewedLink ? "Listo, quiero regalarlo" : "Continuar sin verla"}
+              </button>
+            </div>
+          </div>
         ) : (
           <form onSubmit={submit}>
             <h3 id="pledge-title">{gift.name}</h3>
@@ -105,6 +131,11 @@ export default function PledgeModal({
                   : `Faltan ${gift.remaining} de ${gift.quantity}. ¿Cuántos regalás?`}
             </p>
             {isMoney && gift.description && <p className="money-desc">{gift.description}</p>}
+            {gift.link && (
+              <a className="hint-inline" href={gift.link} target="_blank" rel="noopener noreferrer">
+                💡 Ver la sugerencia de los papás ↗
+              </a>
+            )}
 
             {error && <div className="error">{error}</div>}
 
@@ -122,7 +153,6 @@ export default function PledgeModal({
                     id="amount"
                     className="input"
                     inputMode="numeric"
-                    placeholder="Ej: 2.000"
                     value={amount}
                     onChange={(e) => {
                       const digits = e.target.value.replace(/[^\d]/g, "").slice(0, 8);
@@ -145,7 +175,7 @@ export default function PledgeModal({
 
             <label className="toggle">
               <input type="checkbox" checked={group} onChange={(e) => setGroup(e.target.checked)} />
-              {isMoney ? "Lo regalamos entre varios" : "Lo regalo junto con otras personas"}
+              <span>{isMoney ? "Lo regalamos entre varios" : "Lo regalo junto con otras personas"} <em>(opcional)</em></span>
             </label>
 
             {group && (
