@@ -3,6 +3,7 @@ import { getStore } from "@/lib/db";
 import { BABY_NAME, EVENT_DATE, EVENT_PLACE, EVENT_TIME } from "@/lib/config";
 import { Hibiscus, Leaf, Stars, Wave } from "./components/Decorations";
 import GiftList from "./components/GiftList";
+import { publicGift } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -61,7 +62,7 @@ export default async function Home() {
           </div>
         </section>
 
-        <GiftList initialGifts={gifts} />
+        <GiftList initialGifts={gifts.map(publicGift)} />
       </div>
 
       <footer className="footer">

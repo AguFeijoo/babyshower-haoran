@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getStore } from "@/lib/db";
 import { parsePledge } from "@/lib/validate";
+import { publicGift } from "@/lib/types";
 
 export async function POST(req: Request) {
   const parsed = parsePledge(await req.json().catch(() => null));
@@ -19,10 +20,11 @@ export async function POST(req: Request) {
         error: left === 0
           ? "¡Alguien se te adelantó! Este regalo ya está completo."
           : `Solo faltan ${left}. Ajustá la cantidad, por favor.`,
-        gift: fresh,
+        gift: fresh ? publicGift(fresh) : null,
       },
       { status: 409 },
     );
   }
-  return NextResponse.json({ ok: true, gift: await store.getGift(parsed.value.giftId) });
+  const updated = await store.getGift(parsed.value.giftId);
+  return NextResponse.json({ ok: true, gift: updated ? publicGift(updated) : null });
 }

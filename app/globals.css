@@ -329,7 +329,13 @@ textarea.input { resize: vertical; min-height: 70px; }
   .modal { border-radius: 26px 26px 0 0; max-height: 92vh; }
 }
 
+/* Palabras o links muy largos no rompen el ancho */
+.gift h3, .gift .desc, .admin-gift h3, .admin-gift .meta, .pledge .who, .pledge .co, .pledge .msg, .modal h3, .money-desc { overflow-wrap: anywhere; }
+.admin-gift-head > div:first-child, .pledge > div:first-child, .gift-head > div { min-width: 0; }
+.stat { min-width: 0; }
+
 @media (max-width: 420px) {
+  .stat b { font-size: 26px; }
   .event-chips { gap: 8px; }
   .event-chips span, .event-chips a { font-size: 14px; padding: 7px 12px; }
   .hero-kicker { font-size: 11px; letter-spacing: 0.08em; padding: 5px 12px; }

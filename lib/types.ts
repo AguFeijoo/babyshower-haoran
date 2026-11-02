@@ -46,3 +46,9 @@ export type PledgeInput = {
 export const isOpen = (g: Pick<Gift, "mode" | "remaining">) => g.mode !== "fixed" || g.remaining > 0;
 
 export const formatMoney = (n: number) => `$ ${n.toLocaleString("es-UY")}`;
+
+// Versión pública de un regalo: en los aportes de dinero no se expone el monto total.
+export const publicGift = (g: Gift): Gift => (g.mode === "money" ? { ...g, pledged: 0 } : g);
+
+// Ids de la URL: solo enteros positivos.
+export const parseId = (raw: string) => (/^\d{1,9}$/.test(raw) ? Number(raw) : null);

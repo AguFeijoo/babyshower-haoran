@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { formatMoney, type Gift } from "@/lib/types";
 import { BABY_NAME } from "@/lib/config";
 import { Hibiscus } from "./Decorations";
@@ -33,19 +33,25 @@ export default function PledgeModal({
   const max = gift.mode === "fixed" ? Math.max(1, gift.remaining) : 999;
   const amountNum = Math.round(Number(amount.replace(/[^\d]/g, "")));
 
+  // El nombre guardado se carga una sola vez al abrir (no pisa lo que la persona escribe).
   useEffect(() => {
     try {
       const saved = localStorage.getItem(NAME_KEY);
-      if (saved) setName(saved);
+      if (saved) setName((current) => current || saved);
     } catch {}
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+  }, []);
+
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && closeRef.current();
     window.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
     return () => {
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
     };
-  }, [onClose]);
+  }, []);
 
   useEffect(() => {
     if (qty > max) setQty(max);
@@ -96,6 +102,13 @@ export default function PledgeModal({
               {" "}{BABY_NAME} ya te lo agradece 💙
             </p>
             <button className="btn btn-pink" onClick={onClose}>Volver a la lista</button>
+          </div>
+        ) : gift.mode === "fixed" && gift.remaining === 0 ? (
+          <div className="thanks">
+            <span className="hint-icon" aria-hidden>🎉</span>
+            <h3 id="pledge-title">¡Este regalo ya se completó!</h3>
+            <p className="sub">Alguien se te adelantó con {gift.name}. Fijate en la lista: hay otros que todavía faltan 💙</p>
+            <button className="btn btn-primary" onClick={onClose}>Ver otros regalos</button>
           </div>
         ) : showHint ? (
           <div className="hint">

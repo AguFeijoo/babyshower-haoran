@@ -40,7 +40,7 @@ async function call(url: string, method: string, body?: unknown) {
 }
 
 const fmtDate = (iso: string) =>
-  new Date(iso).toLocaleString("es-UY", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  new Date(iso).toLocaleString("es-UY", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Montevideo" });
 
 export default function Dashboard({ gifts, pledges, memoryMode }: { gifts: Gift[]; pledges: Pledge[]; memoryMode: boolean }) {
   const router = useRouter();
