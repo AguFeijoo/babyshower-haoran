@@ -9,7 +9,6 @@ export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const gifts = await getStore().listGifts();
-  const [first, ...rest] = BABY_NAME.split(" ");
 
   return (
     <main>
@@ -24,8 +23,10 @@ export default async function Home() {
         <div className="container" style={{ position: "relative" }}>
           <span className="hero-kicker">Baby Shower · Aloha, bebé</span>
           <h1>
-            {first}
-            <span className="pink">{rest.join(" ")}</span>
+            Santino
+            <span className="pink">
+              <span className="hanzi" lang="zh">浩然</span> HaoRan
+            </span>
           </h1>
           <p className="lead">
             ¡Ya casi llega! Armamos esta lista para que sepas qué nos hace falta.
