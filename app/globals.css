@@ -104,6 +104,29 @@ h1, h2, h3 { font-family: var(--font-display); line-height: 1.05; margin: 0; }
 }
 .chip.active { border-color: var(--stitch); background: var(--stitch); color: #fff; }
 
+/* ---------- Categorías ---------- */
+.cat-nav {
+  position: sticky; top: 0; z-index: 10;
+  display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none;
+  padding: 10px 16px; margin: 0 -16px 8px;
+  background: rgba(234, 245, 253, 0.92); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.cat-nav::-webkit-scrollbar { display: none; }
+.cat-chip {
+  flex: none; display: inline-flex; align-items: center; gap: 6px;
+  background: #fff; border: 2px solid var(--line); color: var(--stitch-deep);
+  border-radius: 999px; padding: 6px 12px; font-weight: 800; font-size: 14px; text-decoration: none; white-space: nowrap;
+}
+.cat-chip:hover { border-color: var(--stitch); }
+.cat-chip span {
+  background: var(--angel-soft); color: var(--angel-deep); border-radius: 999px;
+  min-width: 22px; padding: 1px 7px; font-size: 12px; text-align: center;
+}
+.cat-section { scroll-margin-top: 64px; }
+@media (min-width: 761px) { .cat-nav { flex-wrap: wrap; } .cat-section { scroll-margin-top: 110px; } }
+.cat-title { font-size: clamp(24px, 4vw, 30px); color: var(--stitch-deep); margin: 22px 0 14px; }
+.admin-cat { font-family: var(--font-display); font-size: 20px; color: var(--angel-deep); margin: 18px 0 10px; }
+
 /* ---------- Tarjetas de regalo ---------- */
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; padding-bottom: 32px; }
 .gift {
@@ -235,7 +258,7 @@ textarea.input { resize: vertical; min-height: 70px; }
 .stat span { color: var(--muted); font-size: 14px; font-weight: 700; }
 .panel { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; margin-bottom: 18px; }
 .panel h2 { font-size: 26px; color: var(--stitch-deep); margin-bottom: 12px; }
-.gift-form { display: grid; grid-template-columns: 2fr 3fr 2fr 110px; gap: 10px; align-items: end; }
+.gift-form { display: grid; grid-template-columns: 1.4fr 1.6fr 2fr 1.4fr 100px; gap: 10px; align-items: end; }
 .gift-form .field { margin: 0; }
 .admin-gift { border: 2px solid var(--line); border-radius: 18px; padding: 16px; margin-bottom: 12px; }
 .admin-gift-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; flex-wrap: wrap; }

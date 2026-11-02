@@ -4,9 +4,10 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 import type { Gift, Pledge } from "@/lib/types";
+import { groupByCategory } from "@/lib/group";
 
-type Draft = { name: string; description: string; link: string; quantity: string };
-const emptyDraft: Draft = { name: "", description: "", link: "", quantity: "1" };
+type Draft = { category: string; name: string; description: string; link: string; quantity: string };
+const emptyDraft: Draft = { category: "", name: "", description: "", link: "", quantity: "1" };
 
 async function call(url: string, method: string, body?: unknown) {
   const res = await fetch(url, {
@@ -35,6 +36,8 @@ export default function Dashboard({ gifts, pledges, memoryMode }: { gifts: Gift[
     people.add(p.giverName.trim().toLowerCase());
     p.coGivers.forEach((c) => people.add(c.trim().toLowerCase()));
   }
+  const categories = [...new Set(gifts.map((g) => g.category).filter(Boolean))];
+  const groups = groupByCategory(gifts);
   const totalNeeded = gifts.reduce((a, g) => a + g.quantity, 0);
   const totalPledged = gifts.reduce((a, g) => a + Math.min(g.pledged, g.quantity), 0);
 
@@ -56,7 +59,7 @@ export default function Dashboard({ gifts, pledges, memoryMode }: { gifts: Gift[
   async function addGift(e: React.FormEvent) {
     e.preventDefault();
     const ok = await run(() => call("/api/admin/gifts", "POST", { ...newGift, quantity: Number(newGift.quantity) }));
-    if (ok) setNewGift(emptyDraft);
+    if (ok) setNewGift({ ...emptyDraft, category: newGift.category });
   }
 
   async function saveGift(id: number) {
@@ -66,7 +69,7 @@ export default function Dashboard({ gifts, pledges, memoryMode }: { gifts: Gift[
 
   function startEdit(g: Gift) {
     setEditing(g.id);
-    setDraft({ name: g.name, description: g.description, link: g.link, quantity: String(g.quantity) });
+    setDraft({ category: g.category, name: g.name, description: g.description, link: g.link, quantity: String(g.quantity) });
   }
 
   async function removeGift(g: Gift) {
@@ -118,7 +121,14 @@ export default function Dashboard({ gifts, pledges, memoryMode }: { gifts: Gift[
 
         <section className="panel">
           <h2>Agregar regalo</h2>
+          <datalist id="cat-options">
+            {categories.map((c) => <option key={c} value={c} />)}
+          </datalist>
           <form className="gift-form" onSubmit={addGift}>
+            <div className="field">
+              <label htmlFor="ng-cat">Categoría</label>
+              <input id="ng-cat" className="input" list="cat-options" value={newGift.category} onChange={(e) => setNewGift({ ...newGift, category: e.target.value })} placeholder="Elegí o escribí una" maxLength={60} />
+            </div>
             <div className="field">
               <label htmlFor="ng-name">Nombre</label>
               <input id="ng-name" className="input" value={newGift.name} onChange={(e) => setNewGift({ ...newGift, name: e.target.value })} placeholder="Ej: Cochecito" required maxLength={120} />
@@ -142,13 +152,20 @@ export default function Dashboard({ gifts, pledges, memoryMode }: { gifts: Gift[
         <section className="panel">
           <h2>Regalos y respuestas</h2>
           {gifts.length === 0 && <p className="no-pledges">Todavía no hay regalos en la lista.</p>}
-          {gifts.map((g) => {
+          {groups.map((group) => (
+            <div key={group.name || "sin-categoria"}>
+            {group.name && <h3 className="admin-cat">{group.name}</h3>}
+          {group.items.map((g) => {
             const list = pledges.filter((p) => p.giftId === g.id);
             const isEditing = editing === g.id;
             return (
               <div className="admin-gift" key={g.id}>
                 {isEditing ? (
                   <form className="gift-form" onSubmit={(e) => { e.preventDefault(); saveGift(g.id); }}>
+                    <div className="field">
+                      <label>Categoría</label>
+                      <input className="input" list="cat-options" value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value })} maxLength={60} />
+                    </div>
                     <div className="field">
                       <label>Nombre</label>
                       <input className="input" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} required maxLength={120} />
@@ -216,6 +233,8 @@ export default function Dashboard({ gifts, pledges, memoryMode }: { gifts: Gift[
               </div>
             );
           })}
+            </div>
+          ))}
         </section>
       </div>
     </main>

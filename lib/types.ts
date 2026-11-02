@@ -1,5 +1,6 @@
 export type Gift = {
   id: number;
+  category: string;
   name: string;
   description: string;
   link: string;
@@ -19,6 +20,7 @@ export type Pledge = {
 };
 
 export type GiftInput = {
+  category: string;
   name: string;
   description: string;
   link: string;

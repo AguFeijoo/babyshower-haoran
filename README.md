@@ -36,4 +36,6 @@ Abrí http://localhost:3000. Sin `DATABASE_URL` funciona en **modo prueba** (los
 
 - Fecha y lugar del evento: `EVENT_DATE` y `EVENT_PLACE` en `lib/config.ts` (si están vacíos no se muestran).
 - Colores: variables al principio de `app/globals.css`.
-- Regalos de ejemplo iniciales: `SEED_GIFTS` en `lib/db.ts`.
+- Lista inicial de regalos: `lib/seedGifts.ts`.
+- Cargar la lista real en Neon de una vez: pegar `db/regalos.sql` en el SQL Editor de Neon (borra los regalos existentes y carga la lista).
+- Categorías: cada regalo tiene una categoría (ej: "🛏️ Dormir") y la web los agrupa por categoría.

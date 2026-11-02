@@ -1,17 +1,7 @@
 import { neon } from "@neondatabase/serverless";
 import type { Gift, GiftInput, Pledge, PledgeInput } from "./types";
+import { SEED_GIFTS } from "./seedGifts";
 
-// Regalos de ejemplo que se cargan una sola vez cuando la base está recién creada.
-const SEED_GIFTS: GiftInput[] = [
-  { name: "Pañales talle RN", description: "Paquetes de pañales para recién nacido", link: "", quantity: 6 },
-  { name: "Pañales talle P", description: "Paquetes de pañales talle P", link: "", quantity: 8 },
-  { name: "Toallitas húmedas", description: "Paquetes de toallitas sin perfume", link: "", quantity: 10 },
-  { name: "Bodies manga larga 0–3 meses", description: "De algodón, cualquier color", link: "", quantity: 6 },
-  { name: "Mantita de algodón", description: "Para el cochecito o la cuna", link: "", quantity: 2 },
-  { name: "Bañera con soporte", description: "", link: "", quantity: 1 },
-  { name: "Termómetro digital", description: "De baño y de cuerpo", link: "", quantity: 1 },
-  { name: "Libros de tela", description: "Para estimulación temprana", link: "", quantity: 3 },
-];
 
 type Store = {
   listGifts(): Promise<Gift[]>;
@@ -24,7 +14,7 @@ type Store = {
   deletePledge(id: number): Promise<boolean>;
 };
 
-function withTotals(base: { id: number; name: string; description: string; link: string; quantity: number }, pledged: number): Gift {
+function withTotals(base: { id: number; category: string; name: string; description: string; link: string; quantity: number }, pledged: number): Gift {
   return { ...base, pledged, remaining: Math.max(0, base.quantity - pledged) };
 }
 
@@ -54,13 +44,14 @@ function neonStore(url: string): Store {
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     )`;
     await sql`CREATE INDEX IF NOT EXISTS pledges_gift_id_idx ON pledges(gift_id)`;
+    await sql`ALTER TABLE gifts ADD COLUMN IF NOT EXISTS category TEXT NOT NULL DEFAULT ''`;
     await sql`CREATE TABLE IF NOT EXISTS app_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)`;
     const seeded = await sql`INSERT INTO app_meta (key, value) VALUES ('seeded', '1')
       ON CONFLICT (key) DO NOTHING RETURNING key`;
     if (seeded.length > 0) {
       for (const [i, g] of SEED_GIFTS.entries()) {
-        await sql`INSERT INTO gifts (name, description, link, quantity, sort_order)
-          VALUES (${g.name}, ${g.description}, ${g.link}, ${g.quantity}, ${i})`;
+        await sql`INSERT INTO gifts (category, name, description, link, quantity, sort_order)
+          VALUES (${g.category}, ${g.name}, ${g.description}, ${g.link}, ${g.quantity}, ${i})`;
       }
     }
   }
@@ -73,7 +64,7 @@ function neonStore(url: string): Store {
 
   function mapGift(r: Record<string, unknown>): Gift {
     return withTotals(
-      { id: Number(r.id), name: String(r.name), description: String(r.description), link: String(r.link), quantity: Number(r.quantity) },
+      { id: Number(r.id), category: String(r.category ?? ""), name: String(r.name), description: String(r.description), link: String(r.link), quantity: Number(r.quantity) },
       Number(r.pledged),
     );
   }
@@ -95,13 +86,13 @@ function neonStore(url: string): Store {
     },
     async createGift(g) {
       const s = await db();
-      await s`INSERT INTO gifts (name, description, link, quantity, sort_order)
-        VALUES (${g.name}, ${g.description}, ${g.link}, ${g.quantity},
+      await s`INSERT INTO gifts (category, name, description, link, quantity, sort_order)
+        VALUES (${g.category}, ${g.name}, ${g.description}, ${g.link}, ${g.quantity},
           (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM gifts))`;
     },
     async updateGift(id, g) {
       const s = await db();
-      const rows = await s`UPDATE gifts SET name = ${g.name}, description = ${g.description},
+      const rows = await s`UPDATE gifts SET category = ${g.category}, name = ${g.name}, description = ${g.description},
         link = ${g.link}, quantity = ${g.quantity} WHERE id = ${id} RETURNING id`;
       return rows.length > 0;
     },

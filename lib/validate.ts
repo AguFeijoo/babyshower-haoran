@@ -8,6 +8,7 @@ const toInt = (v: unknown) => {
 
 export function parseGift(body: unknown): { ok: true; value: GiftInput } | { ok: false; error: string } {
   const b = (body ?? {}) as Record<string, unknown>;
+  const category = clean(b.category, 60);
   const name = clean(b.name, 120);
   const description = clean(b.description, 400);
   let link = clean(b.link, 500);
@@ -16,7 +17,7 @@ export function parseGift(body: unknown): { ok: true; value: GiftInput } | { ok:
   if (!Number.isFinite(quantity) || quantity < 0 || quantity > 9999)
     return { ok: false, error: "La cantidad tiene que ser un número entero entre 0 y 9999." };
   if (link && !/^https?:\/\//i.test(link)) link = `https://${link}`;
-  return { ok: true, value: { name, description, link, quantity } };
+  return { ok: true, value: { category, name, description, link, quantity } };
 }
 
 export function parsePledge(body: unknown): { ok: true; value: PledgeInput } | { ok: false; error: string } {
