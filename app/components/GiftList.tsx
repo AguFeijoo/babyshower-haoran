@@ -1,0 +1,95 @@
+"use client";
+
+import { useState } from "react";
+import type { Gift } from "@/lib/types";
+import { GiftIcon } from "./Decorations";
+import PledgeModal from "./PledgeModal";
+
+const ICON_COLORS = [
+  ["#3e74c9", "#f28db8"],
+  ["#f28db8", "#3e74c9"],
+  ["#2f9e78", "#ffc857"],
+  ["#23407f", "#a9d6f2"],
+  ["#e8505b", "#ffc857"],
+];
+
+type Filter = "pending" | "all";
+
+export default function GiftList({ initialGifts }: { initialGifts: Gift[] }) {
+  const [gifts, setGifts] = useState(initialGifts);
+  const [selected, setSelected] = useState<Gift | null>(null);
+  const [filter, setFilter] = useState<Filter>("all");
+
+  const shown = filter === "pending" ? gifts.filter((g) => g.remaining > 0) : gifts;
+  const pendingCount = gifts.filter((g) => g.remaining > 0).length;
+
+  function updateGift(updated: Gift) {
+    setGifts((list) => list.map((g) => (g.id === updated.id ? updated : g)));
+    setSelected((s) => (s && s.id === updated.id ? updated : s));
+  }
+
+  return (
+    <>
+      <div className="section-title">
+        <div>
+          <h2>Lista de regalos</h2>
+          <p>
+            {pendingCount === 0 && gifts.length > 0
+              ? "¡Está todo cubierto! Gracias a todos 💙"
+              : `${pendingCount} ${pendingCount === 1 ? "regalo todavía necesita" : "regalos todavía necesitan"} padrinos.`}
+          </p>
+        </div>
+        <div className="filters" role="tablist">
+          <button className={`chip ${filter === "all" ? "active" : ""}`} onClick={() => setFilter("all")}>Todos</button>
+          <button className={`chip ${filter === "pending" ? "active" : ""}`} onClick={() => setFilter("pending")}>Faltan</button>
+        </div>
+      </div>
+
+      {shown.length === 0 ? (
+        <div className="empty">
+          {gifts.length === 0 ? "Los papás todavía están armando la lista. ¡Volvé pronto!" : "No queda nada pendiente 🎉"}
+        </div>
+      ) : (
+        <div className="grid">
+          {shown.map((g, i) => {
+            const done = g.remaining === 0;
+            const pct = g.quantity > 0 ? Math.min(100, (g.pledged / g.quantity) * 100) : 100;
+            const [c1, c2] = ICON_COLORS[i % ICON_COLORS.length];
+            return (
+              <article key={g.id} className={`gift ${done ? "done" : ""}`}>
+                <div className="gift-head">
+                  <span className="gift-icon"><GiftIcon color={c1} ribbon={c2} /></span>
+                  <div>
+                    <h3>{g.name}</h3>
+                    {g.description && <p className="desc">{g.description}</p>}
+                  </div>
+                </div>
+                {g.link && (
+                  <a className="ref" href={g.link} target="_blank" rel="noopener noreferrer">
+                    Ver referencia ↗
+                  </a>
+                )}
+                <div className="progress" aria-hidden><i style={{ width: `${pct}%` }} /></div>
+                <div className="counts">
+                  <span>{done ? "Completo" : <>Faltan <b>{g.remaining}</b></>}</span>
+                  <span>{g.pledged} de {g.quantity}</span>
+                </div>
+                {done ? (
+                  <span className="badge-done">¡Completo! Gracias 💚</span>
+                ) : (
+                  <button className="btn btn-primary" onClick={() => setSelected(g)}>
+                    Lo regalo 🌺
+                  </button>
+                )}
+              </article>
+            );
+          })}
+        </div>
+      )}
+
+      {selected && (
+        <PledgeModal gift={selected} onClose={() => setSelected(null)} onGiftUpdate={updateGift} />
+      )}
+    </>
+  );
+}
