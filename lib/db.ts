@@ -12,6 +12,9 @@ type Store = {
   createPledge(input: PledgeInput): Promise<boolean>;
   listPledges(): Promise<Pledge[]>;
   deletePledge(id: number): Promise<boolean>;
+  // Hasta qué momento los papás ya vieron las notificaciones (ISO) o null si nunca.
+  getSeenAt(): Promise<string | null>;
+  setSeenAt(iso: string): Promise<void>;
 };
 
 type GiftBase = { id: number; mode: GiftMode; category: string; name: string; description: string; link: string; quantity: number };
@@ -136,13 +139,23 @@ function neonStore(url: string): Store {
       const rows = await s`DELETE FROM pledges WHERE id = ${id} RETURNING id`;
       return rows.length > 0;
     },
+    async getSeenAt() {
+      const s = await db();
+      const rows = await s`SELECT value FROM app_meta WHERE key = 'notif_seen_at'`;
+      return rows[0] ? String(rows[0].value) : null;
+    },
+    async setSeenAt(iso) {
+      const s = await db();
+      await s`INSERT INTO app_meta (key, value) VALUES ('notif_seen_at', ${iso})
+        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`;
+    },
   };
 }
 
 /* ------------------- Memoria (desarrollo local sin DATABASE_URL) ------------------- */
 
 type MemGift = GiftInput & { id: number };
-type MemState = { gifts: MemGift[]; pledges: Pledge[]; nextGift: number; nextPledge: number };
+type MemState = { gifts: MemGift[]; pledges: Pledge[]; nextGift: number; nextPledge: number; seenAt?: string | null };
 
 function memoryStore(): Store {
   const g = globalThis as unknown as { __bsMem?: MemState };
@@ -187,6 +200,8 @@ function memoryStore(): Store {
       m.pledges = m.pledges.filter((p) => p.id !== id);
       return m.pledges.length < before;
     },
+    async getSeenAt() { return m.seenAt ?? null; },
+    async setSeenAt(iso) { m.seenAt = iso; },
   };
 }
 

@@ -1,10 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { formatMoney, type Gift, type GiftMode, type Pledge } from "@/lib/types";
 import { groupByCategory } from "@/lib/group";
+import NotificationBell from "./NotificationBell";
 
 type Draft = { mode: GiftMode; category: string; name: string; description: string; link: string; quantity: string };
 const emptyDraft: Draft = { mode: "fixed", category: "", name: "", description: "", link: "", quantity: "1" };
@@ -42,8 +43,24 @@ async function call(url: string, method: string, body?: unknown) {
 const fmtDate = (iso: string) =>
   new Date(iso).toLocaleString("es-UY", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Montevideo" });
 
-export default function Dashboard({ gifts, pledges, memoryMode }: { gifts: Gift[]; pledges: Pledge[]; memoryMode: boolean }) {
+export default function Dashboard({ gifts, pledges, seenAt, memoryMode }: { gifts: Gift[]; pledges: Pledge[]; seenAt: string | null; memoryMode: boolean }) {
   const router = useRouter();
+
+  // Al volver a la pestaña o desbloquear el celular, trae las respuestas nuevas.
+  useEffect(() => {
+    const onVisible = () => document.visibilityState === "visible" && router.refresh();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [router]);
+
+  function goToGift(id: number) {
+    const el = document.getElementById(`gift-${id}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.classList.remove("flash");
+    void el.offsetWidth;
+    el.classList.add("flash");
+  }
   const [newGift, setNewGift] = useState<Draft>(emptyDraft);
   const [editing, setEditing] = useState<number | null>(null);
   const [draft, setDraft] = useState<Draft>(emptyDraft);
@@ -119,6 +136,7 @@ export default function Dashboard({ gifts, pledges, memoryMode }: { gifts: Gift[
             <span style={{ opacity: 0.85 }}>Todo lo que dijeron que van a regalar</span>
           </div>
           <div className="actions">
+            <NotificationBell pledges={pledges} gifts={gifts} seenAt={seenAt} onGoTo={goToGift} />
             <Link href="/" className="btn btn-ghost btn-sm" style={{ textDecoration: "none" }}>Ver la web</Link>
             <button className="btn btn-ghost btn-sm" onClick={logout}>Salir</button>
           </div>
@@ -182,7 +200,7 @@ export default function Dashboard({ gifts, pledges, memoryMode }: { gifts: Gift[
             const list = pledges.filter((p) => p.giftId === g.id);
             const isEditing = editing === g.id;
             return (
-              <div className="admin-gift" key={g.id}>
+              <div className="admin-gift" key={g.id} id={`gift-${g.id}`}>
                 {isEditing ? (
                   <form className="gift-form" onSubmit={(e) => { e.preventDefault(); saveGift(g.id); }}>
                     <div className="field">

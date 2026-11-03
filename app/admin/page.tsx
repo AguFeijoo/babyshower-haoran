@@ -10,6 +10,6 @@ export const metadata: Metadata = { title: "Panel de los papás", robots: { inde
 export default async function AdminPage() {
   if (!(await isAdmin())) return <LoginForm />;
   const store = getStore();
-  const [gifts, pledges] = await Promise.all([store.listGifts(), store.listPledges()]);
-  return <Dashboard gifts={gifts} pledges={pledges} memoryMode={usingMemory()} />;
+  const [gifts, pledges, seenAt] = await Promise.all([store.listGifts(), store.listPledges(), store.getSeenAt()]);
+  return <Dashboard gifts={gifts} pledges={pledges} seenAt={seenAt} memoryMode={usingMemory()} />;
 }
